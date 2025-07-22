@@ -15,10 +15,10 @@
 // import axios from "axios";
 
 // function Profile() {
-//   const { _id, username, email, photo } = useSelector(
+//   const { _id, username, email, avatar } = useSelector(
 //     (state) => state.user.currentUser
 //   );
-//   console.log(photo);
+//   console.log(avatar);
 
 //   const { loading, error } = useSelector((state) => state.user);
 //   const dispatch = useDispatch();
@@ -53,7 +53,7 @@
 //         data
 //       );
 
-//       setFormData({ ...formData, photo: cloudinaryRes.data.secure_url });
+//       setFormData({ ...formData, avatar: cloudinaryRes.data.secure_url });
 //     } catch (err) {
 //       return toast.error("There is an issue with the cloudinary service!");
 //     }
@@ -158,7 +158,7 @@
 //           hidden
 //         />
 //         <img
-//           src={formData.photo || photo}
+//           src={formData.avatar || avatar}
 //           onClick={() => {
 //             inputRef.current.click();
 //           }}
