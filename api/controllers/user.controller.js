@@ -1,93 +1,79 @@
-import { errorHandler } from "../utils/error.js";
-import User from "../models/user.model.js";
-import bcrypt from "bcryptjs";
-// import Listing from "../models/listing.model.js";
+import bcryptjs from 'bcryptjs';
+import User from '../models/user.model.js';
+import { errorHandler } from '../utils/error.js';
+// import Listing from '../models/listing.model.js';
 
 export const test = (req, res) => {
   res.json({
-    msg: "The test works",
+    message: 'Api route is working!',
   });
 };
 
 export const updateUser = async (req, res, next) => {
-  console.log("this is the form data received",req.body)
-  const userId = req.userId;
-  console.log('userid from diff sources are',userId,req.params.id);
-  
-  if (userId != req.params.id)
-    return next(errorHandler("You can update Your Own Account Only!", 401));
-  if (req.body.password) {
-    req.body.password = bcrypt.hashSync(req.body.password, 10);
-  }
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    {
-      $set: {
-        username: req.body.username,
-        password:req.body.password,
-        email: req.body.email,
-        avatar: req.body.avatar,
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, 'You can only update your own account!'));
+  try {
+    if (req.body.password) {
+      req.body.password = bcryptjs.hashSync(req.body.password, 10);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          username: req.body.username,
+          email: req.body.email,
+          password: req.body.password,
+          avatar: req.body.avatar,
+        },
       },
-    },
-    { new: true }
-  );
-  console.log(updatedUser);
-  
-  const {password,...rest} = updatedUser._doc;
-  res.status(200).json(rest)
+      { new: true }
+    );
+
+    const { password, ...rest } = updatedUser._doc;
+
+    res.status(200).json(rest);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const deleteUser = async (req,res,next)=>{
-  const deleteId = req.userId;
-  const id = req.params.id;
-  if(deleteId!=id){
-    return next(errorHandler("You can delete your own account only!",401))
+export const deleteUser = async (req, res, next) => {
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, 'You can only delete your own account!'));
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.clearCookie('access_token');
+    res.status(200).json('User has been deleted!');
+  } catch (error) {
+    next(error);
   }
-  else{
-    try{
-      const dbRes = await User.findByIdAndDelete(deleteId)
-      res.clearCookie("access_token")
-  res.status(200).json({
-    success:true,
-    msg:"Success User has been deleted!"
-  })
-    }catch(err){
-      return next(errorHandler("There seem to be an issue with the servers",401))
+};
+
+export const getUserListings = async (req, res, next) => {
+  if (req.user.id === req.params.id) {
+    try {
+      const listings = await Listing.find({ userRef: req.params.id });
+      res.status(200).json(listings);
+    } catch (error) {
+      next(error);
     }
+  } else {
+    return next(errorHandler(401, 'You can only view your own listings!'));
   }
-}
+};
 
-export const showUserListings = async (req,res,next)=>{
-  const userId = req.userId;
-  const user = req.params.id;
-  console.log(userId);
-  console.log(user);
-  
-  if(userId!=user){
-    return next(errorHandler("Access Denied",401))
-  }
+export const getUser = async (req, res, next) => {
   try {
-    const listings = await Listing.find({userRef:userId})
-    res.status(200).json(listings)
     
-  } catch (error) {
-    return next(error)
-  }
-}
-
-export const getUser = async (req,res,next)=>{
-  try {
-    const landLordId = req.params.id
-  const user = await User.findById(landLordId)
-  if(!user){
-    return next(errorHandler("User not Found",404))
-  }
-  else{
-    const {password:pass,...rest} = user
-    return res.status(200).json(rest)
-  }
-  } catch (error) {
-    return next(error)
-  }
+    const user = await User.findById(req.params.id);
   
-}
+    if (!user) return next(errorHandler(404, 'User not found!'));
+  
+    const { password: pass, ...rest } = user._doc;
+  
+    res.status(200).json(rest);
+  } catch (error) {
+    next(error);
+  }
+};
