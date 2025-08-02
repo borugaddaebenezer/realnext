@@ -29,7 +29,7 @@ export default function CreateListing() {
 
   const handleImageSubmit = async () => {
     if (files.length === 0 || files.length + formData.imageUrls.length > 6) {
-      setImageUploadError('You must upload between 1 and 6 images');
+      setImageUploadError('You can upload upto 6 images only.');
       return;
     }
     setUploading(true);
