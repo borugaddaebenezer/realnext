@@ -1,146 +1,147 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
-import { Swiper, SwiperSlide } from "swiper/react";
-import SwiperCore from "swiper";
-import { Navigation } from "swiper/modules";
-import "swiper/css/bundle";
-import { useSelector, useDispatch } from "react-redux";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import SwiperCore from 'swiper';
+import { useSelector } from 'react-redux';
+import { Navigation } from 'swiper/modules';
+import 'swiper/css/bundle';
 import {
   FaBath,
   FaBed,
   FaChair,
-  FaLocationDot,
-  FaSquareParking,
-} from "react-icons/fa6";
-import { FaHome } from "react-icons/fa";
-// import Contact from "../components/Contact";
+  FaMapMarkedAlt,
+  FaMapMarkerAlt,
+  FaParking,
+  FaShare,
+} from 'react-icons/fa';
+// import Contact from '../components/Contact';
+
+// https://sabe.io/blog/javascript-format-numbers-commas#:~:text=The%20best%20way%20to%20format,format%20the%20number%20with%20commas.
 
 export default function Listing() {
   SwiperCore.use([Navigation]);
-  const params = useParams();
   const [listing, setListing] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const currentUser = useSelector((state) => state.user.currentUser);
-  const dispatch = useDispatch();
+  const [copied, setCopied] = useState(false);
   const [contact, setContact] = useState(false);
+  const params = useParams();
+  const { currentUser } = useSelector((state) => state.user);
 
   useEffect(() => {
-    async function getListingData() {
-      const listingId = params.listingId;
-      console.log("The listing id is", listingId);
+    const fetchListing = async () => {
       try {
         setLoading(true);
-        const listingData = await axios.get(`/api/listing/get/${listingId}`);
-        console.log(listingData.data);
+        const res = await fetch(`/api/listing/get/${params.listingId}`);
+        const data = await res.json();
+        if (data.success === false) {
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        setListing(data);
         setLoading(false);
         setError(false);
-        setListing(listingData.data);
-        if (listingData.success === false) {
-          setLoading(false);
-          setError(listingData.data.errorMessage);
-        }
       } catch (error) {
-        setLoading(false);
         setError(true);
+        setLoading(false);
       }
-    }
-    getListingData();
+    };
+    fetchListing();
   }, [params.listingId]);
 
   return (
     <main>
-      {loading && (
-        <p className="text-2xl font-semibold my-7 text-center">Loading...</p>
-      )}
+      {loading && <p className='text-center my-7 text-2xl'>Loading...</p>}
       {error && (
-        <p className="text-2xl font-semibold my-7 text-center">
-          Something Went Wrong
-        </p>
+        <p className='text-center my-7 text-2xl'>Something went wrong!</p>
       )}
-      {listing && !error && !loading && (
-        <div className="p-5 bg-neutral-200">
+      {listing && !loading && !error && (
+        <div>
           <Swiper navigation>
             {listing.imageUrls.map((url) => (
               <SwiperSlide key={url}>
                 <div
-                  className="h-[550px] mx-auto rounded-lg my-2"
+                  className='h-[550px]'
                   style={{
                     background: `url(${url}) center no-repeat`,
-                    backgroundSize: "cover",
+                    backgroundSize: 'cover',
                   }}
                 ></div>
               </SwiperSlide>
             ))}
           </Swiper>
-
-          <div className="mx-auto mt-5 sm:max-w-2xl sm:mx-auto">
-            <div className="flex items-center gap-3 text-green-600">
-              <h1 className="text-3xl font-semibold">{listing.name}</h1>
-              <FaHome className="text-2xl" />
-            </div>
-
-            <div className="flex gap-1 items-center text-lg my-3">
-              <FaLocationDot className="text-green-600" />
-              <span className="font-semibold">{listing.address}</span>
-            </div>
-
-            <p className="text-sm text-gray-500">
-              Listed on: {new Date(listing.createdAt).toLocaleDateString()}
+          <div className='fixed top-[13%] right-[3%] z-10 border rounded-full w-12 h-12 flex justify-center items-center bg-slate-100 cursor-pointer'>
+            <FaShare
+              className='text-slate-500'
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                setCopied(true);
+                setTimeout(() => {
+                  setCopied(false);
+                }, 2000);
+              }}
+            />
+          </div>
+          {copied && (
+            <p className='fixed top-[23%] right-[5%] z-10 rounded-md bg-slate-100 p-2'>
+              Link copied!
             </p>
-
-            <div>
-              <div
-                className={`p-3 rounded-lg font-semibold max-w-lg my-3 text-white ${
-                  listing.type === "rent" ? "bg-red-700" : "bg-green-700"
-                }`}
-              >
-                {listing.type === "rent"
-                  ? `Rent per month is $${listing.regularPrice}`
-                  : `Cost $${listing.regularPrice}`}
-              </div>
-
+          )}
+          <div className='flex flex-col max-w-4xl mx-auto p-3 my-7 gap-4'>
+            <p className='text-2xl font-semibold'>
+              {listing.name} - ${' '}
+              {listing.offer
+                ? listing.discountPrice.toLocaleString('en-US')
+                : listing.regularPrice.toLocaleString('en-US')}
+              {listing.type === 'rent' && ' / month'}
+            </p>
+            <p className='flex items-center mt-6 gap-2 text-slate-600  text-sm'>
+              <FaMapMarkerAlt className='text-green-700' />
+              {listing.address}
+            </p>
+            <div className='flex gap-4'>
+              <p className='bg-red-900 w-full max-w-[200px] text-white text-center p-1 rounded-md'>
+                {listing.type === 'rent' ? 'For Rent' : 'For Sale'}
+              </p>
               {listing.offer && (
-                <div className="bg-green-700 text-white p-3 rounded-lg font-semibold max-w-lg my-3">
-                  Max Discount is ${listing.discountPrice}
-                </div>
+                <p className='bg-green-900 w-full max-w-[200px] text-white text-center p-1 rounded-md'>
+                  ${+listing.regularPrice - +listing.discountPrice} OFF
+                </p>
               )}
             </div>
-
-            <div className="p-3 font-semibold text-lg">
-              <p className="mb-2">Description -</p>
-              <p className="text-slate-700">{listing.description}</p>
-            </div>
-
-            <ul className="p-3 flex flex-col gap-5 text-green-900">
-              <li className="flex gap-2 whitespace-nowrap items-center font-semibold">
-                <FaBed className="text-3xl" />
-                Bedroom/s : {listing.bedrooms}
+            <p className='text-slate-800'>
+              <span className='font-semibold text-black'>Description - </span>
+              {listing.description}
+            </p>
+            <ul className='text-green-900 font-semibold text-sm flex flex-wrap items-center gap-4 sm:gap-6'>
+              <li className='flex items-center gap-1 whitespace-nowrap '>
+                <FaBed className='text-lg' />
+                {listing.bedrooms > 1
+                  ? `${listing.bedrooms} beds `
+                  : `${listing.bedrooms} bed `}
               </li>
-              <li className="flex gap-2 whitespace-nowrap items-center font-semibold">
-                <FaBath className="text-3xl" />
-                Bathroom/s : {listing.bathrooms}
+              <li className='flex items-center gap-1 whitespace-nowrap '>
+                <FaBath className='text-lg' />
+                {listing.bathrooms > 1
+                  ? `${listing.bathrooms} baths `
+                  : `${listing.bathrooms} bath `}
               </li>
-              <li className="flex gap-2 whitespace-nowrap items-center font-semibold">
-                <FaSquareParking className="text-3xl" />
-                Parking : {listing.parking ? "Available" : "Not available"}
+              <li className='flex items-center gap-1 whitespace-nowrap '>
+                <FaParking className='text-lg' />
+                {listing.parking ? 'Parking spot' : 'No Parking'}
               </li>
-              <li className="flex gap-2 whitespace-nowrap items-center font-semibold">
-                <FaChair className="text-3xl" />
-                Furnished : {listing.furnished ? "Furnished" : "Not Furnished"}
+              <li className='flex items-center gap-1 whitespace-nowrap '>
+                <FaChair className='text-lg' />
+                {listing.furnished ? 'Furnished' : 'Unfurnished'}
               </li>
             </ul>
-
-            {/* Uncomment when Contact component is ready
-            {currentUser && !contact && currentUser._id !== listing.userRef && (
+            {/* {currentUser && listing.userRef !== currentUser._id && !contact && (
               <button
-                onClick={() => {
-                  setContact(true);
-                }}
-                className="bg-slate-500 p-3 text-white rounded-lg w-full my-3 text-lg font-semibold hover:opacity-95"
+                onClick={() => setContact(true)}
+                className='bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 p-3'
               >
-                Contact The LandLord
+                Contact landlord
               </button>
             )}
             {contact && <Contact listing={listing} />} */}
