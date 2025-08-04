@@ -12,5 +12,4 @@ router.get('/listings/:id', verifyToken, getUserListings);
 // This only matches 24-character MongoDB ObjectIDs
 router.get('/:id([a-fA-F0-9]{24})', verifyToken, getUser);
 
-
 export default router;
